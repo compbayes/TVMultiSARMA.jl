@@ -8,6 +8,7 @@ makedocs(;
     authors="Mattias Villani, Ganna Fagerberg",
     sitename="TVMultiSARMA.jl",
     format=Documenter.HTML(;
+        prettyurls=get(ENV, "CI", "false") == "true",
         canonical="https://mattiasvillani.github.io/TVMultiSARMA.jl",
         edit_link="main",
         assets=String[],
