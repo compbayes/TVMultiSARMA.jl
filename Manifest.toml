@@ -2,7 +2,7 @@
 
 julia_version = "1.12.2"
 manifest_format = "2.0"
-project_hash = "4553182320b8fcf8dc18832940d98727399f7064"
+project_hash = "29017673ea76adbe2d26ed23274e9972be2095d3"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "8be2ae325471fc20b11c27bb34b518541d07dd3a"
@@ -1393,7 +1393,7 @@ uuid = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 version = "1.0.3"
 
 [[deps.TVMultiSARMA]]
-deps = ["Distributions", "DynamicGlobalLocalShrinkage", "ForwardDiff", "JLD2", "LaTeXStrings", "LinearAlgebra", "Measures", "Plots", "Polynomials", "Random", "SMCsamplers", "Statistics"]
+deps = ["Distributions", "DynamicGlobalLocalShrinkage", "ForwardDiff", "JLD2", "LaTeXStrings", "LinearAlgebra", "Measures", "PDMats", "Plots", "Polynomials", "Random", "SMCsamplers", "Statistics"]
 path = "."
 uuid = "c829f553-22ac-4b19-a1dc-cc178927e19e"
 version = "1.0.0-DEV"

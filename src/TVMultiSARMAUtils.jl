@@ -121,3 +121,20 @@ function MultiSARtoReg(θ, p, s, activeLags; ztrans = "monahan", negative_signs 
     return ϕ̃[activeLags]
 
 end
+
+""" 
+    ϕ̂, sₑ = SARMAasReg(x, pFit, season, imposeZeros = true)
+    Fits a SARMA model as a regression and returns the OLS estimates of the AR coefficients and the standard deviation of the residuals.    
+""" 
+function SARMAasReg(x, pFit, season; imposeZeros = true)
+    p_max = sum(pFit .* season)
+    y, Z, T = SetupARReg(x, p_max);
+    if imposeZeros
+        activeLags = FindActiveLagsMultiSAR(pFit, season) # Non-zero lags in ϕ(L)Φ(L^s) poly
+        Z = Z[:,activeLags]
+        p_max = length(activeLags)
+    end
+    ϕ̂ = Z \ y 
+    sₑ = sqrt(sum(((y - Z*ϕ̂).^2))/(T-p_max))
+    return ϕ̂, sₑ
+end

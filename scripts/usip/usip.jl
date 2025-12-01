@@ -1,5 +1,6 @@
 using TVMultiSARMA, Plots, LaTeXStrings, Measures, Random
 using JLD2, Dates
+using DynamicGlobalLocalShrinkage
 
 experimentName = "usip"
 mainFolder = joinpath(dirname(@__DIR__), experimentName)
@@ -39,11 +40,8 @@ dates = data["dates"]
 
 activeLags = FindActiveLagsMultiSAR(pFit, season) # Non-zero lags in ϕ(L)Φ(L^s) poly
 
-# Fit using OLS with all lags - note that T is now T - p_max
-p_max = sum(pFit .* season)
-y, Z, T = SetupARReg(x, p_max);
-ϕ̂ = Z \ y # Includes also the non-zero coeff. Could do better, but is only for initial val
-sₑ = sqrt(sum(((y - Z*ϕ̂).^2))/(T-p_max))
+# Prior mean of σₑ from OLS fit with all lags.
+ϕ̂, sₑ = SARMAasReg(x, pFit, season, imposeZeros = false)
 
 μ₀, Σ₀ = NormalApproxUniformStationary(pFit)
 priorSettings = (
@@ -60,4 +58,4 @@ algoSettings = (θupdate = θupdate, nIter = nIter, nBurn = nBurn,
 
 # Run Gibbs
 timing =  @elapsed θpost, Hpost, σₑpost, ϕpost, σ²ₙpost, μpost, ϕARpost = 
-    GibbsLocalMultiSAR_SV(x, modelSettings, priorSettings, algoSettings);
+    GibbsLocalMultiSAR(x, modelSettings, priorSettings, algoSettings);
