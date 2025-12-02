@@ -4,7 +4,7 @@ LogVol2Covs(H) = PDMat.([diagm(exp.(H[t,:])) for t in 1:size(H,1)])
 """
     GibbsLocalMultiSAR(x, modelSettings, priorSettings, algoSettings)
 
-Gibbs sampling from the posterior of the locally stable time-varying multi-seasonal AR(p) model with dynamic shrinkage process prior. With stochastic volatility.
+Gibbs sampling from the posterior of the locally stable time-varying multi-seasonal AR(p) model with dynamic shrinkage process prior. Optionally, with stochastic volatility.
 
 """ 
 function GibbsLocalMultiSAR(x, modelSettings, priorSettings, algoSettings, 
@@ -12,9 +12,11 @@ function GibbsLocalMultiSAR(x, modelSettings, priorSettings, algoSettings,
 
     # Unpack
     ϕ₀, κ₀, ν₀, ψ₀, m₀, σ₀, νₑ, ψₑ, μ₀, Σ₀, ϕ̄₀, κ̄₀, ν̄₀, ψ̄₀, m̄₀, σ̄₀ = priorSettings
-    p, season, ztrans, fixσₙ, α, β, includeIntercept, SV = modelSettings
+    p, season, pacf_map, fixσₙ, α, β, includeIntercept, SV = modelSettings
     θupdate, nIter, nBurn, nParticles, nInitFFBS, initVal, offsetMethod = algoSettings 
-
+    updateσₙ = isnothing(fixσₙ)
+    isa(offsetMethod, Function) ? offset = eps() : offset =  offsetMethod # init offset DSP
+ 
     if any(season .> 1)  && (θupdate == :ffbs) 
         error("ffbs requires a linear Gaussian model and cannot be used with seasonal AR")
     end
@@ -28,22 +30,24 @@ function GibbsLocalMultiSAR(x, modelSettings, priorSettings, algoSettings,
     activeLags = FindActiveLagsMultiSAR(p, season)
     Z = Z[:,activeLags] # Select the lags with non-zero coeff when poly are multiplied
 
+    ## Set up prior, transition and observation models
     prior = (nLags == 1) ? Normal(μ₀[1], sqrt(Σ₀[1])) : MvNormal(μ₀, Σ₀)
+
     transition(param, state, t) = (nLags == 1) ? Normal(state, sqrt(param.Σₙ[t][1])) : 
         MvNormal(state, param.Σₙ[t])
 
-    # Set up observation model
-    function observation(param, state, t)
-        return Normal(param.Z[t,:]⋅MultiSARtoReg(state, p, season, activeLags; 
-            ztrans = ztrans), sqrt(param.Σₑ[t][1]))
-    end 
+    observation(param, state, t) = Normal(param.Z[t,:]⋅MultiSARtoReg(state, p, season,  
+        activeLags; pacf_map = pacf_map), sqrt(param.Σₑ[t][1]))
+   
 
     # Measurement function and its derivative for FFBSx
-    C = (θ, z) -> z ⋅ MultiSARtoReg(θ, p, season, activeLags; ztrans = ztrans)
+    C(θ, z) = z ⋅ MultiSARtoReg(θ, p, season, activeLags; pacf_map = pacf_map)
     ∂C(θ, z) = ForwardDiff.gradient(θ -> C(θ, z), θ)' # gradient of measurement function
     
     # Approximate the log χ²₁ distribution with a mixture of normals
-    mixture = SetUpLogChi2Mixture(10) # Only 5 and 10 component supported
+    nMixComp = 10
+    mixture = SetUpLogChi2Mixture(nMixComp) 
+    P = zeros(T, nMixComp) # Posterior probabilities for mixture components, updated later
 
     # Storage
     θpost = zeros(T+1, nLags, nIter) # The initial θ₀ goes first here.
@@ -62,6 +66,7 @@ function GibbsLocalMultiSAR(x, modelSettings, priorSettings, algoSettings,
         μ̄post = nothing
         σ̄²ₙpost = nothing
     end
+    θparticles = zeros(nParticles, sum(p), T+1) # Initialize PGAS particle container.
 
     # Initial values
     if (nInitFFBS>0) && (θupdate == :pgas)
@@ -70,10 +75,10 @@ function GibbsLocalMultiSAR(x, modelSettings, priorSettings, algoSettings,
         B = zeros(nLags)
         Cargs = [Z[t,:] for t in 1:T]
         U = zeros(T,1)
-        algoSettingsInit = (θupdate = :FFBSx, nIter = nInitFFBS, 
-            nBurn = round(Int, 0.1*nInitFFBS), nParticles = nParticles, nInitFFBS = 0, initVal = initVal, offset = offset)
+        algoSettingsInit = (θupdate = :ffbsx, nIter = nInitFFBS, 
+            nBurn = round(Int, 0.1*nInitFFBS), nParticles = nParticles, nInitFFBS = 0, initVal = initVal, offsetMethod = offsetMethod)
         θpostInit, HpostInit, σₑpostInit, ϕpostInit, σ²ₙpostInit, μpostInit, ϕARpostInit =  
-            GibbsLocalMultiSAR_SV(x, modelSettings, priorSettings, algoSettingsInit);
+            GibbsLocalMultiSAR(x, modelSettings, priorSettings, algoSettingsInit);
         θ = median(θpostInit, dims = 3)
         H = median(HpostInit, dims = 3)
         σₑ = median(σₑpostInit, dims = 2)
@@ -84,7 +89,7 @@ function GibbsLocalMultiSAR(x, modelSettings, priorSettings, algoSettings,
         ϕ̄ = ϕ̄₀
         μ̄ = m̄₀
         σ̄²ₙ = ψ̄₀^2
-        if isnothing(fixσₙ) # estimate
+        if updateσₙ
             σ²ₙ = median(σ²ₙpostInit, dims = 2)
         else
             σ²ₙ = (fixσₙ^2)*ones(nLags)
@@ -121,7 +126,7 @@ function GibbsLocalMultiSAR(x, modelSettings, priorSettings, algoSettings,
         μ = initialValues.μ
         ϕ = initialValues.ϕ
     end
-    ξ̄ = ones(T) # SV model has no Poly-Gamma  
+    ξ̄ = ones(T) # Trick. No Polya-Gamma for SV. Allows us to use the same update function. 
     H̃ = H .- μ'
 
     ϕAR = zeros(T+1, nLags)
@@ -134,7 +139,6 @@ function GibbsLocalMultiSAR(x, modelSettings, priorSettings, algoSettings,
 
     # Set up model for θupdate
     if θupdate == :pgas
-        θpgas = nothing # First pgas call run an unconditional filter to get ref particle
         A = I(nLags)
         param = (Σₙ = Σₙ, Z = Z, Σₑ = Σₑ) 
         scalingFactor = 1
@@ -146,9 +150,13 @@ function GibbsLocalMultiSAR(x, modelSettings, priorSettings, algoSettings,
             else
                 initialization = MvNormal(μ_prop, scalingFactor*Σ_prop)
             end
+            θ = median(θpostInit, dims = 3) # Initial reference particle for pgas
         else
             initialization = prior
-        end
+            θ = PGASsimulate!(θparticles, y, nLags, nParticles, param, 
+                prior, transition, observation, initialization, systematic; 
+                sample_t0 = true) # Initial reference particle for pgas from filter
+        end        
     elseif θupdate == :ffbs
         A = I(nLags)
         B = zeros(nLags)
@@ -157,13 +165,8 @@ function GibbsLocalMultiSAR(x, modelSettings, priorSettings, algoSettings,
             C[1,:,t] = Z[t,:]'
         end 
         U = zeros(T,1)
-    elseif θupdate == :FFBSx
-        A = PDMat(I(nLags))
-        B = zeros(nLags)
-        Cargs = [Z[t,:] for t in 1:T]
-        U = zeros(T,1)
-    elseif θupdate == :ffbs_unscented
-        A = PDMat(I(nLags)) #FIXME: Why is this PDMat?
+    elseif θupdate == :ffbsx || θupdate == :ffbs_unscented
+        A = PDMat(I(nLags)) #FIXME: Do we need this PDMat?
         B = zeros(nLags)
         Cargs = [Z[t,:] for t in 1:T]
         U = zeros(T,1)
@@ -176,15 +179,13 @@ function GibbsLocalMultiSAR(x, modelSettings, priorSettings, algoSettings,
 
         # Update θ₀, θ₁, θ₂, ..., θ_T 
         if θupdate == :pgas
-            param = (Σₙ = Σₙ, Z = Z, Σₑ = Σₑ)
-            θpgas = PGASupdate(y, nLags, nParticles, param, prior, transition,
-                observation, initialization, systematic, θpgas) # returns p ⨱ T matrix, no initial θ₀ # FIXME: run all the way to t = 0 and remove θinitial step
-            θ = θpgas'
-            θinitial = UpdateInitialState(θ[1,:], μ₀, Σ₀, A, param.Σₙ[1])
-            θ = [θinitial'; θ]        
+            param = (Σₙ = Σₙ, Z = Z, Σₑ = Σₑ)   
+            θ = PGASsimulate!(θparticles, y, nLags, nParticles, param, 
+                prior, transition, observation, initialization, systematic, θ; 
+                sample_t0 = true) 
         elseif θupdate == :ffbs
             θ = FFBS(U, y, A, B, C, Σₑ, Σₙ, μ₀, Σ₀)
-        elseif θupdate == :FFBSx 
+        elseif θupdate == :ffbsx 
             θ = FFBSx(U, y, A, B, C, ∂C, Cargs, Σₑ, Σₙ, μ₀, Σ₀)
         elseif θupdate == :ffbs_unscented
             θ = FFBS_unscented(U, y, A, B, C, Cargs, Σₑ, Σₙ, μ₀, Σ₀, 
@@ -192,9 +193,9 @@ function GibbsLocalMultiSAR(x, modelSettings, priorSettings, algoSettings,
         end
         
         # Truncate
-        if ztrans == "monahan" # TODO: maybe remove? 
+        if pacf_map == "monahan" # TODO: maybe remove? 
             clamp!(θ, -10.0, 10.0) 
-        elseif ztrans == "sigmoid"
+        elseif pacf_map == "sigmoid"
             clamp!(θ, -6.0, 6.0) 
         end
             
@@ -202,7 +203,7 @@ function GibbsLocalMultiSAR(x, modelSettings, priorSettings, algoSettings,
         count = 0
         for l in 1:length(season)
             ϕAR[:, (count + 1):(count + p[l])] = mapslices(
-                θ -> arma_reparam(θ; ztrans = ztrans)[1], 
+                θ -> arma_reparam(θ; pacf_map = pacf_map)[1], 
                 θ[:,(count + 1):(count + p[l])], dims = 2
             )
             count = count + p[l]
@@ -211,16 +212,17 @@ function GibbsLocalMultiSAR(x, modelSettings, priorSettings, algoSettings,
         # Update noise variance
         offsetSV = eps()
         h̄, ϕ̄, μ̄, σ̄²ₙ = UpdateErrorVolatility(y, Z, θ, h̄, ξ̄, ϕ̄, μ̄, σ̄²ₙ, 
-            ϕ̄₀, κ̄₀, m̄₀, σ̄₀, ν̄₀, ψ̄₀, νₑ, ψₑ, mixLogχ²₁, m , v, p, season, activeLags, ztrans, SV, offsetSV)
+            ϕ̄₀, κ̄₀, m̄₀, σ̄₀, ν̄₀, ψ̄₀, νₑ, ψₑ, mixture, p, season, activeLags, pacf_map, SV, offsetSV)
         if !SV
-            h̄ = h̄*ones(T)
+            h̄ = h̄*ones(T) # homoscedastic errors
         end
         σₑ = exp.(h̄/2)
 
-        # Compute parameter evolution matrix, vₜ,ₖ = θₜ,ₖ - θₜ₋₁,ₖ for t = 1,...T
-        ν = diff(θ, dims = 1)
+        # Update the log-volatility evolution H and DSP static parameters
+        ν = diff(θ, dims = 1) # Param evolution matrix, vₜ,ₖ = θₜ,ₖ - θₜ₋₁,ₖ for t = 1,...T
         setOffset!(offset, ν, offsetMethod)
-        update_dsp!(ν, S, P, H, H̃, ξ, ϕ, μ, σ²ₙ, priorSettings, mixture, Dᵩ)
+        update_dsp!(ν, S, P, H, H̃, ξ, ϕ, μ, σ²ₙ, priorSettings, mixture, Dᵩ, 
+            offset, α, β, updateσₙ)
      
         # store
         if i>nBurn
@@ -242,4 +244,30 @@ function GibbsLocalMultiSAR(x, modelSettings, priorSettings, algoSettings,
 
     return θpost, Hpost, σₑpost, ϕpost, σ²ₙpost, μpost, ϕARpost, ϕ̄post, μ̄post, σ̄²ₙpost
 
-end # End of GibbsLocalAR_SV
+end 
+
+
+# Draw the stochastic volatility - log(σₑ²)
+function UpdateErrorVolatility(y, Z, θ, h̄, ξ̄, ϕ̄, μ̄, σ̄²ₙ, 
+        ϕ̄₀, κ̄₀, m̄₀, σ̄₀, ν̄₀, ψ̄₀, νₑ, ψₑ, mix, p, season, activeLags, pacf_map, SV = true, offsetSV = eps())
+    ϕ̃ = mapslices(θ -> MultiSARtoReg(θ, p, season, activeLags; pacf_map = pacf_map), 
+        θ, dims = 2)
+    residuals = y - sum(Z .* ϕ̃[2:end,:], dims = 2) # Residuals for the AR(p) model
+    T = length(residuals)
+    if !SV
+        return log(rand(ScaledInverseChiSq(νₑ + T, 
+            (νₑ*ψₑ^2 + sum(residuals.^2))/(νₑ + T)))), nothing, nothing, nothing
+    end
+    # Stochatic volatility
+    ȳ = log.(residuals.^2 .+ offsetSV)[:]
+    s̄ = UpdateMixAlloc(ȳ, h̄, mix.dist)[:,1] # mixture allocation for log χ²₁
+    D̄ = BandedMatrix(-1 => repeat([-ϕ̄], T-1), 0 => Ones(T)) # Init D matrix SV
+    h̄ = Update_h(ȳ, mix.m[s̄], mix.v[s̄], D̄, ξ̄, ϕ̄, σ̄²ₙ, μ̄)
+    ϕ̄ = Updateϕ(h̄, ξ̄, μ̄, σ̄²ₙ, ϕ̄₀, κ̄₀)
+    σ̄²ₙ = Updateσ²ₙ(h̄, ξ̄, ϕ̄, μ̄, ν̄₀, ψ̄₀)
+    μ̄ = Updateμ(h̄, ξ̄, ϕ̄, σ̄²ₙ, m̄₀, σ̄₀)
+    
+    
+    return h̄, ϕ̄, μ̄, σ̄²ₙ
+
+end

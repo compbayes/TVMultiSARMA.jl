@@ -1,4 +1,63 @@
 
+""" 
+    PostSpecDensMultiSAR(ϕARpost, σₑpost, p, season; ωgrid = 0.01:0.01:π, thinFactor = 100) 
+
+Compute posterior draws of the spectral density for a time-varying multi-season SAR model from posterior draws of the AR coefficients (`ϕARpost` a T×sum(p)×nIter matrix) at every `thinFactor` iteration.
+
+""" 
+function PostSpecDensMultiSAR(ϕARpost, σₑpost, p, season; ωgrid = 0.01:0.01:π, 
+    thinFactor = 10, activeLags = nothing)
+
+nIter  = size(ϕARpost,3)
+T = size(ϕARpost, 1) # Including t=0
+thinFactor = minimum(Int, [round(nIter/100), thinFactor])
+println("using every $(thinFactor)th iteration to compute spectral density")
+thinIter = thinFactor:thinFactor:nIter
+specDensDraws = Array{Union{Float64,Missing}}(undef, length(ωgrid), T, length(thinIter))
+if isnothing(activeLags)
+    ϕ = Vector(undef, length(season))
+    θ = repeat([[]], length(season)) # no MA coeff
+else 
+    ϕ = [zeros(sum(p .* season))] # models without multiplicative is like single period AR
+    θ = [[]] # no MA coeff
+    season = [1]
+end
+ 
+stationaryProp = zeros(T)
+nIterThin = length(thinIter)
+@showprogress for (c,i) in enumerate(thinIter)
+       
+    for t = 1:T # t = 1 is really t=0
+          
+        stationary = true
+        if isnothing(activeLags)
+            count = 0
+            for l in 1:length(season)
+                ϕ[l] = ϕARpost[t,(count + 1):(count + p[l]),i]
+                stationary = stationary*check_stationarity(ϕ[l])[1]
+                count = count + p[l]
+            end
+        else
+            ϕ[1][activeLags] .= ϕARpost[t,:,i]
+            stationary = check_stationarity(ϕ[1])[1]
+        end
+
+        if stationary
+            specDensDraws[:,t,c] = SpecDensMultiSARMA(ωgrid, ϕ, θ, σₑpost[i]^2, season)
+            stationaryProp[t] += 1/nIterThin
+        else
+            specDensDraws[:,t,c] .= missing
+        end
+
+    end
+end
+
+return specDensDraws, stationaryProp
+
+end
+
+
+
 
 """ 
     plotEvolStabilityRegion(ϕevol, θevol, iter, plotEvolLine = true) 
@@ -123,60 +182,6 @@ function PlotPriorPostHyperparameters(ϕpost, σ²post, μpost, priorSettings, m
 
 end
 
-""" 
-    PlotTrajectoriesGivenTimepoint(postdraws, timepoint, paramName) 
-
-Plot draws over MCMC iterations for a selected `timepoint`.
-postdraws is a  T × p × nIter matrix with draws over T time periods for p parameters.
-`paramName` is a string with name of the parameter, using double \\ for latex, e.g. paramName = "\\theta", but only "h" for non-latex.
-""" 
-function PlotTrajectoriesGivenTimepoint(postdraws, timepoint, paramName)
-    
-        p = size(postdraws, 2)
-        plt = [] 
-        for k in 1:p
-            plttemp = plot(postdraws[timepoint,k,:], label = "", 
-                title = L"%$(paramName)_{%$k,%$timepoint}", linecolor = colors[1], lw = 1.5)
-            push!(plt, plttemp)
-        end
-        return plot(plt..., layout = (p,2), size = (600,800), margin = 5mm)
-end
-
-
-""" 
-    PlotScatterOverIterations 
-
-Plots a scatter of the parameters paramMat1[j,:] and paramMat2[j,:] with color gradient to show iteration number in MCMC to follow the sampling paths over iterations.
-""" 
-function PlotScatterOverIterations(paramMat1, paramMat2, paramName1, paramName2)
-
-    nIter = maximum(size(paramMat1))
-    nParam = minimum(size(paramMat1))
-    if nParam <= 3
-        nRow, nCol = 1, nParam
-        plotSize = (800, 400)
-    elseif nParam <= 6
-        nRow, nCol = 2, 3
-        plotSize = (800, 800)
-    elseif nParam <= 9
-        nRow, nCol = 3, 3
-        plotSize = (800, 1200)
-    else 
-        error("Maximum 9 parameters for this plot")
-    end
-    colorgradients =[cgrad(:blues, scale= :linear)[z] for z ∈ (1:nIter)/nIter]
-    plt = []
-    for j in 1:nParam
-        push!(plt,scatter(paramMat1[j,:], paramMat2[j,:], color = colorgradients, 
-            xlab = L"%$(paramName1)_{%$j}", ylab = L"%$(paramName2)_{%$j}",
-            title = "Parameter $j", markersize = 3, colorbar = true, label = nothing)
-        )
-    end
-    colorbarplt = scatter([], [], zcolor=[0,1], clims=(1,nIter), label="", c = :blues, 
-        colorbar_title = "MCMC iteration", framestyle=:none)
-    l = @layout [grid(nRow, nCol) a{0.05w}]
-    return plot(plt..., colorbarplt, layout = l, size = plotSize)
-end
 
 """ 
     PlotMultiSAREvolution(x, ϕevol, θevol, p, season) 

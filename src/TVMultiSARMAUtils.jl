@@ -92,24 +92,25 @@ function NormalApproxUniformStationary(p)
 end
 
 """ 
-    MultiSARtoReg(θ::Vector, p::Vector, s::Vector, activeLags; ztrans = "monahan", 
+    MultiSARtoReg(θ::Vector, p::Vector, s::Vector, activeLags; pacf_map = "monahan", 
         negative_signs = true) 
 
 Takes a vector `θ` of length sum(p) with unrestricted AR/SAR coefficients and returns the *non-zero* coefficients (determined by `activeLags`) in the product polynomial  
 Πₗ(1 - ϕₗ₁B^(sₗ) - ϕₗ₂B^(2*sₗ) - ....) = (1 - ϕ̃₁B - ϕ̃₂B² - ....) 
 where the parameters in each AR polynomial is restricted to stability region. 
 """ 
-function MultiSARtoReg(θ, p, s, activeLags; ztrans = "monahan", negative_signs = true)
+function MultiSARtoReg(θ, p, s, activeLags; pacf_map = "monahan", negative_signs = true)
 
     ARpolynomials = Array{Polynomial}(undef, length(s))
     if sum(p) == 1 # only on parameter in the whole model
-        ϕₗ = arma_reparam(θ; ztrans = ztrans, negative_signs = negative_signs)[1] .+ eps()
+        ϕₗ = arma_reparam(θ; pacf_map = pacf_map, negative_signs = negative_signs)[1] .+ 
+            eps()
         ARseasonpolymat = [zeros(s[1]-1, p[1]);-ϕₗ']; 
         ARpolynomials[1] = Polynomial([1;ARseasonpolymat[:]], :z)
     else
         count = 0
         for l in 1:length(s)
-            ϕₗ = arma_reparam(θ[(count + 1):(count + p[l])]; ztrans = ztrans, 
+            ϕₗ = arma_reparam(θ[(count + 1):(count + p[l])]; pacf_map = pacf_map, 
                 negative_signs = negative_signs)[1] .+ eps()
             ARseasonpolymat = [zeros(s[l]-1, p[l]);-ϕₗ']; 
             ARpolynomials[l] = Polynomial([1;ARseasonpolymat[:]], :z)
@@ -137,4 +138,20 @@ function SARMAasReg(x, pFit, season; imposeZeros = true)
     ϕ̂ = Z \ y 
     sₑ = sqrt(sum(((y - Z*ϕ̂).^2))/(T-p_max))
     return ϕ̂, sₑ
+end
+
+""" 
+    ConvertWideMat2Vec(ϕARpost, p, season) 
+
+Converts a T × sum(p) × nIter matrix to a length(season) vector with T × p[l] × nIter elements for the l:th season with lag order p[l]
+""" 
+function ConvertWideMat2Vec(ϕARpost, p, season)
+    nSeasons = length(season)
+    ϕARpostArray = Vector(undef, nSeasons)
+    count = 0
+    for l in 1:nSeasons
+        ϕARpostArray[l] = ϕARpost[:,(count + 1):(count + p[l]),:]
+        count = count + p[l]
+    end
+    return ϕARpostArray
 end

@@ -4,3 +4,69 @@ LaTeXStrings
 Measures
 JLD2 
 Dates
+
+#TODO: This is not finished - fix later
+function PlotPostParamEvol(ϕARpost, dates = nothing, pFit, SV, ylimits = nothing, 
+    lineColors = [colors[1], colors[3]])
+
+
+    if isnothing(dates)
+        T_eff = size(ϕARpost, 1)
+        dates = 1:T_eff
+        dateticks = 1:floor(Int,T_eff/10):T_eff
+        datetickslabels = string.(dateticks)
+    else
+        T_eff = size(ϕARpost, 1)
+        dateticks = dates[1]:floor(Int,T_eff/10):dates[end]
+        datetickslabels = string.(year.(dateticks))
+    end
+
+    plts = Array{Any}(undef, sum(pFit) + SV)
+    titles = []
+    for l in 1:length(pFit)
+        for i in 1:pFit[l]
+            if l == 1
+                push!(titles, L"\phi_{%$(i)t}")
+            else
+                push!(titles, L"\Phi_{%$(i)t}")
+            end
+        end
+    end
+    T_orig = length(x)
+    T_eff = size(ϕARpost, 1)
+    Tgrid = (T_orig-T_eff + 1):T_orig # Includes t_0 (post-sample)
+    
+    pcount = 0 
+    for l = 1:length(pFit)
+        for j in 1:pFit[l]
+            pcount = pcount + 1
+            plts[pcount] = plot(xticks = (dateticks, year.(dateticks)))
+            ϕAR_tmp = ConvertWideMat2Vec(ϕARpost, pFit, season)
+            quants = quantile_multidim(ϕAR_tmp[l], [0.025, 0.5, 0.975]; dims = 3) 
+            plot!(plts[pcount], dates, quants[:,j,1], color = colors[1])
+            plot!(plts[pcount], dates, quants[:,j,2], color = colors[3])
+            plot!(plts[pcount], dates, quants[:,j,3], color = colors[1])
+            title!(titles[pcount])
+            if !isnothing(ylimits)
+                ylims!(ylimits[pcount])
+            end
+        end 
+    end 
+
+    # Plot posterior parameter evolution for measurement standard deviation σₑ
+    if SV
+        pcount = pcount + 1
+        push!(titles, L"\sigma_{t}")
+        plts[pcount] = plot(title = titles[end], legend = nothing, size = (600,300))
+        quants = quantile_multidim(σₑpost, [0.025, 0.5, 0.975]; dims = 2) 
+        plot!(dates[Tgrid[2:end]] , quants[:,1], color = colors[1],
+            xticks = (dateticks,datetickslabels), label = L"95\%"*" C.I.")
+        plot!(dates[Tgrid[2:end]], quants[:,2], color = colors[3], label  = "median")
+        plot!(dates[Tgrid[2:end]], quants[:,3], color = colors[1], label = nothing)
+    end
+
+    plot(plts..., layout = optimalPlotLayout(length(plts)), size = (800,400), 
+        margin = 2mm)
+
+
+end
