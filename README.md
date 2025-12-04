@@ -7,7 +7,7 @@
 
 ## Description
 
-This package implements Gibbs sampling for Bayesian inference in time-varying multi-seasonal ARMA (TV-Multi-SARMA) models using the sequential Monte Carlo (SMC) samplers in [SMCsamplers.jl](https://github.com/mattiasvillani/SMCsamplers.jl) and the Gibbs sampling for dynamic global-local shrinkage priors in [DynamicGlobalLocalShrinkage.jl](https://github.com/mattiasvillani/DynamicGlobalLocalShrinkage.jl).
+This package implements Gibbs sampling for Bayesian inference in time-varying multi-seasonal ARMA (TV-Multi-SARMA) models using the Sequential Monte Carlo (SMC) samplers in [SMCsamplers.jl](https://github.com/mattiasvillani/SMCsamplers.jl) and the Gibbs sampling for dynamic global-local shrinkage priors in [DynamicGlobalLocalShrinkage.jl](https://github.com/mattiasvillani/DynamicGlobalLocalShrinkage.jl).
 
 ## Installation
 Install from the Julia package manager (via Github) by typing `]` in the Julia REPL:
@@ -29,9 +29,9 @@ The TVMultiSARMA.jl package allows any number of seasonalities $s_1, s_2, \ldots
 The AR parameters $\phi_{jt}$ and $\Phi_{jt}$ can optionally be restricted so that the process is stable at every $t$ by the composite map  
 
 ```math
-\boldsymbol{\theta}_t \rightarrow \boldsymbol{r}_t \rightarrow \boldsymbol{\phi}_t, 
+\mathbf{\theta}_t \rightarrow \mathbf{r}_t \rightarrow \mathbf{\phi}_t, 
 ```
-where the unrestricted parameters $\boldsymbol{\theta}_t$  in $\mathbb{R}^p$ are first mapped to the partial autocorrelations in $[-1,1]^p$ which are then mapped to the stable AR parameters $\boldsymbol{\phi}_t$. The map from $\theta_{jt}$ to $r_{jt}$ can take many forms, for example, the Monahan transformation
+where the unrestricted parameters $\mathbf{\theta}_t$  in $R^p$ are first mapped to the partial autocorrelations in $[-1,1]^p$ which are then mapped to the stable AR parameters $\boldsymbol{\phi}_t$. The map from $\theta_{jt}$ to $r_{jt}$ can take many forms, for example, the Monahan transformation
  
 ```math
  r_{jt} = \frac{\theta_{jt}}{\sqrt{1 + \theta_{jt}^2}}.
