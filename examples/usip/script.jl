@@ -1,48 +1,6 @@
 # # Monthly US industrial production 1919-2024
 
-# In this example we analyze more than a century of US industrial production data using the TVSAR(1,2) model in Fagerberg et al. (2025). The TVSAR(p,P) with $p$ regular lags and $P$ seasonal lags with a single seasonality $s$ = 12 is
-#
-# ```math
-# \begin{equation*}
-#   \phi_t(L)\Phi_t(L^s)y_t = \varepsilon_t , \quad \varepsilon_t \sim N(0,\sigma_t^2)  
-# \end{equation*}
-# ```
-# where $\phi_t(L) = 1 - \phi_{1t} L - \phi_{2t} L^2 - \ldots - \phi_{pt} L^p$ is the regular AR polynomial and $\Phi_t(L^s) = 1 - \Phi_{1t} L^s - \Phi_2 L^{2s} - \ldots - \Phi_{Pt} L^{Ps}$ is the seasonal AR polynomial.
-
-# The AR parameters $\phi_{jt}$ and $\Phi_{jt}$ can optionally be restricted so that the process is stable at every $t$ by the composite map 
-# 
-# ```math
-# \boldsymbol{\theta}_t \rightarrow \boldsymbol{r}_t \rightarrow \boldsymbol{\phi}_t, 
-# ```
-# where the unrestricted parameters $\boldsymbol{\theta}_t$  in $\mathbb{R}^p$ are first mapped to the partial autocorrelations in $[-1,1]^p$ which are then mapped to the stable AR parameters $\boldsymbol{\phi}_t$. The map from $\theta_{jt}$ to $r_{jt}$ can take many forms, for example, the Monahan transformation
-# 
-# ```math
-# r_{jt} = \frac{\theta_{jt}}{\sqrt{1 + \theta_{jt}^2}}.
-# ```
-
-# The unrestricted parameters $\boldsymbol{\theta}_t$ evolve over time following independent dynamic shrinkage process (DSP) priors. For example, for a single AR parameter $\theta_t$ the DSP prior is
-#
-# ```math
-# \begin{align*}
-#   \theta_t &= \theta_{t-1} + \nu_t , \quad \nu_t \sim N(0,\exp(h_t)) \\
-#   h_t &= \mu + \kappa(h_{t-1} -\mu) + \eta_t, \quad \eta_t \sim Z(\alpha,\beta,0,1)  
-# \end{align*}
-# ```
-# where $Z(\alpha,\beta,0,1)$ is the Z-distribution with parameters $\alpha=\beta=1/2$.
-# The DSP prior has a global log-variance $\mu$ that determines the overall degree of 
-# time-variation, and a local log-variance component $\eta_t$ that allows for 
-# large changes in the parameter innovation variance, changes that can be 
-# persistent over time due to the AR(1) structure in $h_t$.
-
-# For this example, we use a stochastic volatility model for the measurement variance $\sigma_t^2$
-#
-# ```math
-# \begin{equation*}
-#   \log \sigma_t^2 = \log \sigma_{t-1}^2 + \xi_t, \quad \xi_t \sim N(0,\sigma_\xi^2)  
-# \end{equation*}
-# ```
-
-# The SAR(1,2) model for this data is illustrated in Fagerberg et al. (2025) from $10000$ Gibbs sampling draws after a burn-in of $3000$ iterations. Here we run a shorter MCMC chain with $1000$ draws and $1000$ burn-in draws for demonstration purposes only.
+# This example analyzes more than a century of US industrial production data using the TVSAR(1,2) model in Fagerberg et al. (2025) with stochastic volatility model for the measurement variance. Fagerberg et al. (2025) generate $10000$ Gibbs sampling draws after a burn-in of $3000$ iterations. Here we run a shorter MCMC chain with $1000$ draws and $1000$ burn-in draws for demonstration purposes only.
 
 # ### Load some packages, set plotting backend and random seed:
 using TVMultiSARMA, Plots, LaTeXStrings, Measures, Random
