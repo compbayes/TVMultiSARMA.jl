@@ -55,7 +55,7 @@ gr(legend = nothing, grid = false, color = colors[1], lw = 1, legendfontsize=12,
     xtickfontsize=8, ytickfontsize=8, xguidefontsize=10, yguidefontsize=10,
     titlefontsize = 12)
 
-Random.seed!(123) # Set seed for reproducibility
+Random.seed!(123); # Set seed for reproducibility
 
 # ### Load and setup the data
 data = load(Downloads.download("https://github.com/mattiasvillani/TVMultiSARMA.jl/raw/main/scripts/usip/data/usipdata_long.jld2"))
