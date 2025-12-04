@@ -29,15 +29,15 @@ The TVMultiSARMA.jl package allows any number of seasonalities $s_1, s_2, \ldots
 The AR parameters $\phi_{jt}$ and $\Phi_{jt}$ can optionally be restricted so that the process is stable at every $t$ by the composite map  
 
 ```math
-\mathbf{\theta}_t \rightarrow \mathbf{r}_t \rightarrow \mathbf{\phi}_t, 
+\boldsymbol{\theta}_t \rightarrow \boldsymbol{r}_t \rightarrow \boldsymbol{\phi}_t, 
 ```
-where the unrestricted parameters $\mathbf{\theta}_t$  in $R^p$ are first mapped to the partial autocorrelations in $[-1,1]^p$ which are then mapped to the stable AR parameters $\boldsymbol{\phi}_t$. The map from $\theta_{jt}$ to $r_{jt}$ can take many forms, for example, the Monahan transformation
+where the unrestricted parameters 𝛉ₜ in ℝᵖ are first mapped to the partial autocorrelations 𝐫ₜ in [−1, 1]ᵖ which are then mapped to the stable AR parameters 𝛟ₜ. The map from 𝛉ₜ to 𝐫ₜ can take many forms, for example, the Monahan transformation
  
 ```math
  r_{jt} = \frac{\theta_{jt}}{\sqrt{1 + \theta_{jt}^2}}.
 ```
 
-The unrestricted parameters $\boldsymbol{\theta}_t$ evolve over time following independent dynamic shrinkage process (DSP) priors. For example, for a single AR parameter $\theta_t$ the DSP prior is
+The unrestricted parameters 𝛉ₜ evolve over time following independent dynamic shrinkage process (DSP) priors. For example, for a single AR parameter $\theta_t$ the DSP prior is
 
 ```math
 \begin{align*}
