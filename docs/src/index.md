@@ -59,6 +59,16 @@ The TVMultiSARMA.jl allows for a stochastic volatility model for the measurement
 ```
 Future versions will include dynamic shrinkage process prior for $\sigma_t^2$.
 
+## Limitations and future extensions
+
+The TVMultiSARMA.jl package is limited to time-varying AR models and Bayesian inference using the conditional likelihood. The stochastic volatility model for the measurement errors uses a homoscedastic Gaussian parameter evolation for $\log\sigma_t$. Future versions will extend this by adding:
+
+- moving average MA and seasonal MA components
+- the exact likelihood
+- global-local shrinkage priors for the stochastic volatility model
+
+The current package is not optimized for speed, and is rather sloppy with memory allocations and type instabilities. Future versions will include speed optimizations.
+
 ```@autodocs
 Modules = [TVMultiSARMA]
 ```

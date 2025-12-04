@@ -77,7 +77,7 @@ offsetMethod = eps(); # offset log-volatility. A Float64 or "kowal"
 pacf_map = "monahan" # Map from θ to pacf's: "monahan", "tanh", "hardtanh", "linear".
 
 modelSettings = (p = pFit, season = season, pacf_map = pacf_map, 
-    fixσₙ = 1, α = 1/2, β = 1/2, intercept = false, SV = SV)
+    fixσₙ = 1, α = 1/2, β = 1/2, intercept = false, SV = SV);
 
 # #### Algorithm settings
 θupdate = :ffbsx     # Sampling of states: :pgas, :ffbs, :ffbsx, :ffbs_unscented
@@ -88,11 +88,11 @@ initVal = "fixed";   # Initial value for the sampling of the state. "prior" or "
 algoSettings = (θupdate = θupdate, nIter = nIter, nBurn = nBurn, 
     nParticles = nParticles, nInitFFBS = nInitFFBS, initVal = initVal, 
     offsetMethod = offsetMethod       
-) 
+); 
 
 # #### Prior settings
 ## Prior mean of measurement stdev σₑ from OLS fit with all lags.
-ϕ̂, sₑ = SARMAasReg(x, pFit, season, imposeZeros = false)
+ϕ̂, sₑ = SARMAasReg(x, pFit, season, imposeZeros = false);
 
 ## Prior for state at t=0 from Normal approximation to uniform dist over stability region
 μ₀, Σ₀ = NormalApproxUniformStationary(pFit)
