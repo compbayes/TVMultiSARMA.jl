@@ -77,4 +77,4 @@ See the documentation and the examples folder for usage and illustrations:
 
 ## References
 
-- Fagerberg, G., Villani, M., & Kohn, R. (2025). Time-Varying Multi-Seasonal AR Models. [arXiv](https://arxiv.org/abs/2409.18640)
+- Fagerberg, G., Villani, M., & Kohn, R. (2025). Time-Varying Multi-Seasonal AR Models. Forthcoming in *Journal of Computational and Graphical Statistics*. [arXiv](https://arxiv.org/abs/2409.18640)
