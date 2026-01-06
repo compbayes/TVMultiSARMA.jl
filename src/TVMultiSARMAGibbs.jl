@@ -33,8 +33,8 @@ function GibbsLocalMultiSAR(x, modelSettings, priorSettings, algoSettings,
     ## Set up prior, transition and observation models
     prior = (nLags == 1) ? Normal(μ₀[1], sqrt(Σ₀[1])) : MvNormal(μ₀, Σ₀)
 
-    transition(param, state, t) = (nLags == 1) ? Normal(state, sqrt(param.Σₙ[t][1])) : 
-        MvNormal(state, param.Σₙ[t])
+    transition(param, state, t) = (nLags == 1) ? Normal(state, sqrt(param.Σᵥ[t][1])) : 
+        MvNormal(state, param.Σᵥ[t])
 
     observation(param, state, t) = Normal(param.Z[t,:]⋅MultiSARtoReg(state, p, season,  
         activeLags; pacf_map = pacf_map), sqrt(param.Σₑ[t][1]))
@@ -134,13 +134,13 @@ function GibbsLocalMultiSAR(x, modelSettings, priorSettings, algoSettings,
     Dᵩ = BandedMatrix(-1 => repeat([-ϕ[1]], T-1), 0 => Ones(T)) # Init D matrix for h_t
     D̄ = BandedMatrix(-1 => repeat([-ϕ̄], T-1), 0 => Ones(T)) # Init D matrix SV
 
-    Σₙ = LogVol2Covs(H)
+    Σᵥ = LogVol2Covs(H)
     Σₑ = LogVol2Covs(h̄) # Slightly misleading notation. Elements in Σₑ are still a scalars
 
     # Set up model for θupdate
     if θupdate == :pgas
         A = I(nLags)
-        param = (Σₙ = Σₙ, Z = Z, Σₑ = Σₑ) 
+        param = (Σᵥ = Σᵥ, Z = Z, Σₑ = Σₑ) 
         scalingFactor = 1
         if nInitFFBS > 0
             μ_prop = median(θpostInit[1,:,:], dims = 2)[:]
@@ -174,21 +174,21 @@ function GibbsLocalMultiSAR(x, modelSettings, priorSettings, algoSettings,
 
     @showprogress for i = 1:(nBurn+nIter)
 
-        Σₙ = LogVol2Covs(H) 
+        Σᵥ = LogVol2Covs(H) 
         Σₑ = LogVol2Covs(h̄) 
 
         # Update θ₀, θ₁, θ₂, ..., θ_T 
         if θupdate == :pgas
-            param = (Σₙ = Σₙ, Z = Z, Σₑ = Σₑ)   
+            param = (Σᵥ = Σᵥ, Z = Z, Σₑ = Σₑ)   
             θ = PGASsimulate!(θparticles, y, nLags, nParticles, param, 
                 prior, transition, observation, initialization, systematic, θ; 
                 sample_t0 = true) 
         elseif θupdate == :ffbs
-            θ = FFBS(U, y, A, B, C, Σₑ, Σₙ, μ₀, Σ₀)
+            θ = FFBS(U, y, A, B, C, Σₑ, Σᵥ, μ₀, Σ₀)
         elseif θupdate == :ffbsx 
-            θ = FFBSx(U, y, A, B, C, ∂C, Cargs, Σₑ, Σₙ, μ₀, Σ₀)
+            θ = FFBSx(U, y, A, B, C, ∂C, Cargs, Σₑ, Σᵥ, μ₀, Σ₀)
         elseif θupdate == :ffbs_unscented
-            θ = FFBS_unscented(U, y, A, B, C, Cargs, Σₑ, Σₙ, μ₀, Σ₀, 
+            θ = FFBS_unscented(U, y, A, B, C, Cargs, Σₑ, Σᵥ, μ₀, Σ₀, 
                 α = 1, β = 0, κ = 1)
         end
         

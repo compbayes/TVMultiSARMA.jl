@@ -1,17 +1,17 @@
 # TVMultiSARMA
 
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://mattiasvillani.github.io/TVMultiSARMA.jl/dev/)
-[![Build Status](https://github.com/mattiasvillani/TVMultiSARMA.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/mattiasvillani/TVMultiSARMA.jl/actions/workflows/CI.yml?query=branch%3Amain)
-[![Coverage](https://codecov.io/gh/mattiasvillani/TVMultiSARMA.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/mattiasvillani/TVMultiSARMA.jl)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://compbayes.github.io/TVMultiSARMA.jl/dev/home/)
+[![Build Status](https://github.com/compbayes/TVMultiSARMA.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/compbayes/TVMultiSARMA.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![Coverage](https://codecov.io/gh/compbayes/TVMultiSARMA.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/compbayes/TVMultiSARMA.jl)
 
 ## Description
 
-This package implements Gibbs sampling for Bayesian inference in time-varying multi-seasonal ARMA (TV-Multi-SARMA) models using the Sequential Monte Carlo (SMC) samplers in [SMCsamplers.jl](https://github.com/mattiasvillani/SMCsamplers.jl) and the Gibbs sampling for dynamic global-local shrinkage priors in [DynamicGlobalLocalShrinkage.jl](https://github.com/mattiasvillani/DynamicGlobalLocalShrinkage.jl).
+This package implements Gibbs sampling for Bayesian inference in time-varying multi-seasonal ARMA (TV-Multi-SARMA) models using the Sequential Monte Carlo (SMC) samplers in [SMCsamplers.jl](https://github.com/compbayes/SMCsamplers.jl) and the Gibbs sampling for dynamic global-local shrinkage priors in [DynamicGlobalLocalShrinkage.jl](https://github.com/compbayes/DynamicGlobalLocalShrinkage.jl).
 
 ## Installation
 Install from the Julia package manager (via Github) by typing `]` in the Julia REPL:
 ```
-] add git@github.com:mattiasvillani/TVMultiSARMA.jl.git
+] add git@github.com:compbayes/TVMultiSARMA.jl.git
 ```
 ## Multi-seasonal AR model
 
@@ -73,7 +73,7 @@ The current package is not optimized for speed, and is rather sloppy with memory
 
 See the documentation and the examples folder for usage and illustrations:
 
-- [Monthly US industrial production data 1919-2024](https://github.com/mattiasvillani/TVMultiSARMA.jl/blob/main/examples/usip/script.jl)
+- [Monthly US industrial production data 1919-2024](https://github.com/compbayes/TVMultiSARMA.jl/blob/main/examples/usip/script.jl)
 
 ## References
 

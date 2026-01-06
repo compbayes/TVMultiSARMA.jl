@@ -70,3 +70,75 @@ function PlotPostParamEvol(ϕARpost, dates = nothing, pFit, SV, ylimits = nothin
 
 
 end
+
+
+
+
+# Empirical time-varying spectral density estimate
+function tvPeriodogram(y, N, S, nFreq = nothing, taper = nothing; 
+        taperArgs...)
+    if isnothing(taper) 
+      win_normalized = nothing
+    else
+      win = taper(Int64(N); taperArgs...);
+      win_normalized = win/sqrt(mean(win.^2))
+    end
+    if isnothing(nFreq) 
+      numFrequencies = nextfastfft(N)
+    else
+      numFrequencies = nextfastfft(2*nFreq)
+    end
+    noverlap = N - S
+    specG = spectrogram(y, N, noverlap ; onesided=true,  nfft=numFrequencies, fs=1, 
+        window = win_normalized);
+  
+    return specG.power ./ 4π , 2π*specG.freq
+end
+
+# Posterior of log-spectrogram from SAR model
+ωgrid = 0.01:0.01:π
+specDensDraws = PostSpecDensMultiSAR(ϕARpost, σₑpost, pFit, season; ωgrid  = ωgrid, 
+    thinFactor = 10);
+quantilesLogSpecDens = quantile_multidim(log.(specDensDraws), [0.025, 0.5, 0.975], dims = 3)
+quantilesLogSpecDens = quantilesLogSpecDens[:,2:end,:]
+lowLogSpecDens = quantilesLogSpecDens[:,:,1]'
+medianLogSpecDens = quantilesLogSpecDens[:,:,2]'
+highLogSpecDens = quantilesLogSpecDens[:,:,3]'
+
+# Non-parametric estimate of time-varying spectral density
+N = 120; # number of observations in each segment.
+S = 36; # Number of steps the time window moves forward. Number of overlapping obs. is N-S.
+M = (T_orig-N)÷S + 1 # This is the total number of segments we will use.
+nFreq = length(ωgrid) # No of frequencies we want to use
+
+tvI, freqs = tvPeriodogram(x, N, S, nFreq, hanning);
+nFreq = size(tvI)[1]
+j = 1:size(tvI)[1];
+times_blocks = round.(Int,collect(range(N/2, T_orig-(N/2), length=size(tvI)[2])))
+dates_blocks = dates[times_blocks]
+ωgridSub = (π .*j) ./ size(tvI)[1];
+
+extremelogtvI = extrema(log.(tvI))
+extremeModel = extrema(medianLogSpecDens)
+cLimits = (minimum([extremelogtvI[1],extremeModel[1]]), 
+    maximum([extremelogtvI[2],extremeModel[2]]))
+
+# Plot spectrogram with segment highlighted and points for middle of segment
+colorgradients = :viridis
+plt_heatmap_tvI = heatmap(dates_blocks, ωgridSub, log.(tvI), c = colorgradients, 
+    legend = :none, title="log spectrogram", xlab = "time", ylab = "Frequency", 
+    zlab = L"\log f(\omega)", xticks = (dateticks,datetickslabels), clims = cLimits,
+    yticks = ([0, π/4,  π/2, 3π/4,  π], [L"0" L"\pi/4" L"\pi/2" L"3\pi/4" L"\pi"]), 
+    xlims = (dates[Tgrid[2:end]][1], dates[Tgrid[2:end]][end]), colorbar = false)
+
+plt_heatmap_SAR = heatmap(dates[Tgrid[2:end]], ωgrid, medianLogSpecDens', 
+    c = colorgradients, clims = cLimits,
+    xlab = "time", ylab = "Frequency", title = "SAR($(pFit[1]),$(pFit[2]))", 
+        colorbar = false,
+    yticks = ([0, π/4,  π/2, 3π/4,  π], [L"0" L"\pi/4" L"\pi/2" L"3\pi/4" L"\pi"]), 
+        xticks = (dateticks,datetickslabels))
+
+gr(legend = nothing, grid = false, color = colors[1], lw = 1, legendfontsize=14,
+    xtickfontsize=8, ytickfontsize=8, xguidefontsize=10, yguidefontsize=10,
+    titlefontsize = 10)
+plot(plt_heatmap_tvI, plt_heatmap_SAR, layout = (1,2), size = (800,300), margin = 3mm)
