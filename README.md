@@ -9,9 +9,12 @@
 This package implements Gibbs sampling for Bayesian inference in time-varying multi-seasonal ARMA (TV-Multi-SARMA) models using the Sequential Monte Carlo (SMC) samplers in [SMCsamplers.jl](https://github.com/compbayes/SMCsamplers.jl) and the Gibbs sampling for dynamic global-local shrinkage priors in [DynamicGlobalLocalShrinkage.jl](https://github.com/compbayes/DynamicGlobalLocalShrinkage.jl).
 
 ## Installation
-Install from the Julia package manager (via Github) by typing `]` in the Julia REPL:
+The package is in the [CompBayesRegistry](https://github.com/compbayes/CompBayesRegistry), which must first be added to your Julia. The package can then be installed by the usual `add` mechanism in the Julia Package manager.
+
+Install from the Julia package manager by typing `]` in the Julia REPL, followed by
 ```
-] add git@github.com:compbayes/TVMultiSARMA.jl.git
+registry add https://github.com/compbayes/CompBayesRegistry.git
+add TVMultiSARMA
 ```
 ## Multi-seasonal AR model
 
@@ -44,11 +47,7 @@ The unrestricted parameters 𝛉ₜ evolve over time following independent dynam
 h_t &= \mu + \kappa(h_{t-1} -\mu) + \eta_t, \quad \eta_t \sim Z(\alpha,\beta,0,1)  
 \end{align*}
 ```
-where $Z(\alpha,\beta,0,1)$ is the Z-distribution with parameters $\alpha=\beta=1/2$.
-The DSP prior has a global log-variance $\mu$ that determines the overall degree of 
-time-variation, and a local log-variance component $\eta_t$ that allows for 
-large changes in the parameter innovation variance, changes that can be 
-persistent over time due to the AR(1) structure in $h_t$.
+where $Z(\alpha,\beta,0,1)$ is the Z-distribution with parameters $\alpha=\beta=1/2$. The DSP prior has a global log-variance $\mu$ that determines the overall degree of  time-variation, and a local log-variance component $\eta_t$ that allows for large changes in the parameter innovation variance, changes that can be  persistent over time due to the AR(1) structure in $h_t$.
 
 The TVMultiSARMA.jl allows for a stochastic volatility model for the measurement variance $\sigma_t^2$
 
@@ -77,4 +76,5 @@ See the documentation and the examples folder for usage and illustrations:
 
 ## References
 
-- Fagerberg, G., Villani, M., & Kohn, R. (2025). Time-Varying Multi-Seasonal AR Models. Forthcoming in *Journal of Computational and Graphical Statistics*. [arXiv](https://arxiv.org/abs/2409.18640)
+- Fagerberg, G., Villani, M., & Kohn, R. (2026). Time-Varying Multi-Seasonal AR Models,  *Journal of Computational and Graphical Statistics*. 
+[journal](https://doi.org/10.1080/10618600.2026.2614102) | [arXiv](https://arxiv.org/abs/2409.18640)
