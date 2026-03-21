@@ -184,11 +184,11 @@ function GibbsLocalMultiSAR(x, modelSettings, priorSettings, algoSettings,
                 prior, transition, observation, initialization, systematic, θ; 
                 sample_t0 = true) 
         elseif θupdate == :ffbs
-            θ = FFBS(U, y, A, B, C, Σₑ, Σᵥ, μ₀, Σ₀)
+            FFBS!(θ, U, y, A, B, C, Σₑ, Σᵥ, μ₀, Σ₀)
         elseif θupdate == :ffbsx 
-            θ = FFBSx(U, y, A, B, C, ∂C, Cargs, Σₑ, Σᵥ, μ₀, Σ₀)
+            FFBSx!(θ, U, y, A, B, C, ∂C, Cargs, Σₑ, Σᵥ, μ₀, Σ₀)
         elseif θupdate == :ffbs_unscented
-            θ = FFBS_unscented(U, y, A, B, C, Cargs, Σₑ, Σᵥ, μ₀, Σ₀, 
+            FFBS_unscented!(θ, U, y, A, B, C, Cargs, Σₑ, Σᵥ, μ₀, Σ₀, 
                 α = 1, β = 0, κ = 1)
         end
         
