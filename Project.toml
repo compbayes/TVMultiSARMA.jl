@@ -1,6 +1,6 @@
 name = "TVMultiSARMA"
 uuid = "c829f553-22ac-4b19-a1dc-cc178927e19e"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["Mattias Villani", "Ganna Fagerberg"]
 
 [deps]
